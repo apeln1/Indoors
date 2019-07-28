@@ -1,0 +1,6 @@
+<launch>
+    <node pkg="sandbox" type="takeoff_and_land" name="takeoff_and_land"
+    output="screen"/>
+    <node pkg="sandbox" type="update_global_position" name="update_global_position"
+    output="screen"/>
+</launch>
