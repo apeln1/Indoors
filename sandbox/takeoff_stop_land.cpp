@@ -8,13 +8,19 @@
 #include <geometry_msgs/TwistStamped.h>
 
 
-
+static geometry_msgs::PoseStamped msg_vicon_pose;
 static mavros_msgs::State current_state;
+
 void state_cb(const mavros_msgs::State::ConstPtr& msg){
     current_state = *msg;
 }
 
 
+void Callback_fcu_pose(const geometry_msgs::PoseStamped msg_fcu_pose_dummy)
+{
+    msg_vicon_pose=msg_fcu_pose_dummy;
+    //ROS_INFO("Got data : %f, %f, %f", msg_fcu_pose_dummy.pose.position.x, msg_fcu_pose_dummy.pose.position.y, msg_fcu_pose_dummy.pose.position.z);
+}
 
 int main(int argc, char **argv)
 {
@@ -23,6 +29,8 @@ int main(int argc, char **argv)
 
     ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>
             ("mavros/state", 10, state_cb);
+
+    ros::Subscriber vicon_sub = nh.subscribe("/mavros/local_position/pose",100, Callback_fcu_pose);
 
 //    ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>
 //            ("mavros/setpoint_position/local", 10);
@@ -53,7 +61,7 @@ int main(int argc, char **argv)
 
     posTarget.position.x = 0;
     posTarget.position.y = 0;
-    posTarget.position.z = 1.2;
+    posTarget.position.z = 1.0;
 
 //    posTarget.velocity.x = 1;
 //    posTarget.velocity.z = 1;
@@ -83,6 +91,8 @@ int main(int argc, char **argv)
     ros::Time last_update = ros::Time::now();
     bool armed = false;
     bool offBoardSet = false;
+    int countToLanding = 0;
+    bool needsToLand = false;
 
     while(ros::ok()){
         if( current_state.mode != "OFFBOARD" && !offBoardSet &&
@@ -108,73 +118,33 @@ int main(int argc, char **argv)
 
 
 
-        if(armed && (ros::Time::now() - last_update>ros::Duration(15.0)) && current_state.mode == "OFFBOARD")
+        if(armed && (ros::Time::now() - last_update>ros::Duration(7.0)) && current_state.mode == "OFFBOARD")
         {
-            posTarget.position.x = 1.0;
-//            offb_set_mode.request.custom_mode = "AUTO.LAND";
-//            set_mode_client.call(offb_set_mode);
-	    break;
+            posTarget.position.x = 4;
+
         }
-        if(armed && (ros::Time::now() - last_update>ros::Duration(25.0)) && current_state.mode == "OFFBOARD")
-        {
-            posTarget.yaw = 3.14/2;
-            //offb_set_mode.request.custom_mode = "AUTO.LAND";
-            //set_mode_client.call(offb_set_mode);
-        }
+  if(current_state.mode == "OFFBOARD" && msg_vicon_pose.pose.position.x>1.0 /*&& !needsToLand*/)
+  {
+    posTarget.position.x = msg_vicon_pose.pose.position.x;
+    ROS_INFO("STOPPING!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    needsToLand = true;
+  }
 
-        if(armed && (ros::Time::now() - last_update>ros::Duration(35.0)) && current_state.mode == "OFFBOARD")
-        {
+  if(current_state.mode == "OFFBOARD" && needsToLand)
+  {
+     countToLanding++;
+     if(countToLanding>80)
+     {
+                offb_set_mode.request.custom_mode = "AUTO.LAND";
+              set_mode_client.call(offb_set_mode);
+    break;
+     }
 
-                posTarget.position.y = 1.0;
-        }
-        if(armed && (ros::Time::now() - last_update>ros::Duration(45.0)) && current_state.mode == "OFFBOARD")
-        {
-                posTarget.yaw = 3.14;
-        }
-
-        if(armed && (ros::Time::now() - last_update>ros::Duration(55.0)) && current_state.mode == "OFFBOARD")
-        {
-            //ROS_INFO("TIMEOUT EXCEEDED");
-            //offb_set_mode.request.custom_mode = "MANUAL";
-            //set_mode_client.call(offb_set_mode);
-            //arm_cmd.request.value = false;
-            //arming_client.call(arm_cmd);
-            //break;
-	    //
-
-            posTarget.position.x = 0;
+  }
 
 
-            //posTarget.velocity.y = 0.1;
 
-              //break;
-        }
-        if(armed && (ros::Time::now() - last_update>ros::Duration(65.0)) && current_state.mode == "OFFBOARD")
-        {
-            //ROS_INFO("TIMEOUT EXCEEDED");
-            //offb_set_mode.request.custom_mode = "MANUAL";
-            //set_mode_client.call(offb_set_mode);
-            //arm_cmd.request.value = false;
-            //arming_client.call(arm_cmd);
-            //break;
-	    //
 
-            posTarget.yaw = 3.14+3.14/2;
-
-            //posTarget.velocity.y = 0.1;
-
-              //break;
-        }
-
-        if(armed && (ros::Time::now() - last_update>ros::Duration(75.0)) && current_state.mode == "OFFBOARD")
-	{
-              posTarget.position.y = 0;
-	}
-        if(armed && (ros::Time::now() - last_update>ros::Duration(85.0)) && current_state.mode == "OFFBOARD")
-
-	{
-	      posTarget.yaw = 3.14*2;
-	}
 
 
         pos_Target_pub.publish(posTarget);

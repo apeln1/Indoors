@@ -108,16 +108,16 @@ int main(int argc, char **argv)
 
 
 
-        if(armed && (ros::Time::now() - last_update>ros::Duration(15.0)) && current_state.mode == "OFFBOARD")
+        if(armed && (ros::Time::now() - last_update>ros::Duration(30.0)) && current_state.mode == "OFFBOARD")
         {
-            posTarget.position.x = 1.0;
-//            offb_set_mode.request.custom_mode = "AUTO.LAND";
-//            set_mode_client.call(offb_set_mode);
+            //posTarget.position.x = 1.0;
+            offb_set_mode.request.custom_mode = "AUTO.LAND";
+            set_mode_client.call(offb_set_mode);
 	    break;
         }
-        if(armed && (ros::Time::now() - last_update>ros::Duration(25.0)) && current_state.mode == "OFFBOARD")
+        if(armed && (ros::Time::now() - last_update>ros::Duration(35.0)) && current_state.mode == "OFFBOARD")
         {
-            posTarget.yaw = 3.14/2;
+	    posTarget.yaw = 3.14/2;
             //offb_set_mode.request.custom_mode = "AUTO.LAND";
             //set_mode_client.call(offb_set_mode);
         }
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
         }
         if(armed && (ros::Time::now() - last_update>ros::Duration(45.0)) && current_state.mode == "OFFBOARD")
         {
-                posTarget.yaw = 3.14;
+		posTarget.yaw = 3.14;
         }
 
         if(armed && (ros::Time::now() - last_update>ros::Duration(55.0)) && current_state.mode == "OFFBOARD")
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
             //break;
 	    //
 
-            posTarget.yaw = 3.14+3.14/2;
+	    posTarget.yaw = 3.14+3.14/2;
 
             //posTarget.velocity.y = 0.1;
 
