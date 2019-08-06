@@ -2,16 +2,15 @@
 import rospy
 from std_msgs.msg import String
 from nav_msgs.msg import OccupancyGrid
-from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseArray
-from geometry_msgs.msg import Pose
+from sensor_msgs.msg import PointCloud2
 from WPmonitoring import WPmonitoring
 from EnvSim import Env
 from Grid import Grid
 
 
 occupancyGrid = OccupancyGrid()
-odometry = Odometry()
+pointCloud2 = PointCloud2()
 trajectory = PoseArray()
 
 
@@ -24,10 +23,6 @@ def occupancyGrid_cb(data):
     rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.header.seq)
     occupancyGrid = data
 
-def odometry_cb(data):
-    global odometry
-    rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.header.seq)
-    odometry = data
 
 def trajectory_cb(data):
     global jointTrajectory
@@ -38,14 +33,14 @@ def trajectory_cb(data):
 
 # subscribers
 rospy.Subscriber("/route_planner/in/occupancy_grid", OccupancyGrid, occupancyGrid_cb)
-rospy.Subscriber("/route_planner/in/odometry", Odometry, odometry_cb)
 rospy.Subscriber("/route_planner/out/trajectory", PoseArray, trajectory_cb)
+rospy.Subscriber("/route_planner/in/trajectory", PoseArray, trajectory_cb)
 
 
 
 pub = rospy.Publisher('topic_name', String, queue_size=10)
 rospy.init_node('wp_monitoring')
-r = rospy.Rate(50) # 10hz
+r = rospy.Rate(50) # 50hz
 
 
 resolution = 10
