@@ -15,12 +15,12 @@ static bool isOdom = false;
 
 void Callback_fcu_pose(const geometry_msgs::PoseStamped msg_fcu_pose)
 {
-    if(msg_fcu_pose.pose.position.z>=0.5)
+    if(msg_fcu_pose.pose.position.z>=0.7)
     {
       isOdom = true;
     }
 
-    ROS_INFO("Got data : %f, %f, %f", msg_fcu_pose.pose.position.x, msg_fcu_pose.pose.position.y, msg_fcu_pose.pose.position.z);
+    //ROS_INFO("Got data : %f, %f, %f", msg_fcu_pose.pose.position.x, msg_fcu_pose.pose.position.y, msg_fcu_pose.pose.position.z);
 }
 
 void callback_timesync_status(const mavros_msgs::TimesyncStatus timesync_status)
@@ -46,6 +46,7 @@ void callback_imu_from_structure(const sensor_msgs::Imu imuData)
 
 void odom_cb(const nav_msgs::Odometry odometry)
 {
+    ROS_INFO("[%d] -->  %f", odometry.header.seq,(ros::Time::now()-odometry.header.stamp).toSec()*1000);
     msg_vicon_pose.header.stamp       = odometry.header.stamp;
     msg_vicon_pose.pose.position.x    = odometry.pose.pose.position.x;
     msg_vicon_pose.pose.position.y    = odometry.pose.pose.position.y;
