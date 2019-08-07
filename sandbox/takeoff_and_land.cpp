@@ -8,19 +8,13 @@
 #include <geometry_msgs/TwistStamped.h>
 
 
-static geometry_msgs::PoseStamped msg_vicon_pose;
-static mavros_msgs::State current_state;
 
+static mavros_msgs::State current_state;
 void state_cb(const mavros_msgs::State::ConstPtr& msg){
     current_state = *msg;
 }
 
 
-void Callback_fcu_pose(const geometry_msgs::PoseStamped msg_fcu_pose_dummy)
-{
-    msg_vicon_pose=msg_fcu_pose_dummy;
-    //ROS_INFO("Got data : %f, %f, %f", msg_fcu_pose_dummy.pose.position.x, msg_fcu_pose_dummy.pose.position.y, msg_fcu_pose_dummy.pose.position.z);
-}
 
 int main(int argc, char **argv)
 {
@@ -29,8 +23,6 @@ int main(int argc, char **argv)
 
     ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>
             ("mavros/state", 10, state_cb);
-
-    ros::Subscriber vicon_sub = nh.subscribe("/mavros/local_position/pose",100, Callback_fcu_pose);
 
 //    ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>
 //            ("mavros/setpoint_position/local", 10);
@@ -91,8 +83,8 @@ int main(int argc, char **argv)
     ros::Time last_update = ros::Time::now();
     bool armed = false;
     bool offBoardSet = false;
-    int countToLanding = 0;
     bool needsToLand = false;
+    int countToLanding = 0;
 
     while(ros::ok()){
         if( current_state.mode != "OFFBOARD" && !offBoardSet &&
@@ -118,33 +110,13 @@ int main(int argc, char **argv)
 
 
 
-        if(armed && (ros::Time::now() - last_update>ros::Duration(30.0)) && current_state.mode == "OFFBOARD")
+        if(armed && (ros::Time::now() - last_update>ros::Duration(20.0)) && current_state.mode == "OFFBOARD")
         {
-            //posTarget.position.x = 4;
-//            posTarget.position.x = msg_vicon_pose.pose.position.x;
-//            ROS_INFO("STOPPING!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-            needsToLand = true;
-
+            posTarget.position.x = 0.0;
+            offb_set_mode.request.custom_mode = "AUTO.LAND";
+            set_mode_client.call(offb_set_mode);
+            break;
         }
-//  if(current_state.mode == "OFFBOARD" && msg_vicon_pose.pose.position.x>1.0 /*&& !needsToLand*/)
-//  {
-//    posTarget.position.x = msg_vicon_pose.pose.position.x;
-//    ROS_INFO("STOPPING!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-//    needsToLand = true;
-//  }
-
-        if(current_state.mode == "OFFBOARD" && needsToLand)
-        {
-           countToLanding++;
-           if(countToLanding>80)
-           {
-                offb_set_mode.request.custom_mode = "AUTO.LAND";
-                set_mode_client.call(offb_set_mode);
-                break;
-           }
-
-        }
-
 
         pos_Target_pub.publish(posTarget);
         ros::spinOnce();

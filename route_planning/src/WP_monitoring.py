@@ -34,7 +34,7 @@ def trajectory_cb(data):
 # subscribers
 rospy.Subscriber("/route_planner/in/occupancy_grid", OccupancyGrid, occupancyGrid_cb)
 rospy.Subscriber("/route_planner/out/trajectory", PoseArray, trajectory_cb)
-rospy.Subscriber("/route_planner/in/trajectory", PoseArray, trajectory_cb)
+
 
 
 
