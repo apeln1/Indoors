@@ -1,0 +1,5 @@
+<launch>
+    <arg name="my_args" value="2"/>
+    <node pkg="sandbox" type="test1" name="test1" args="$(arg my_args)"
+    output="screen"/>
+</launch>
