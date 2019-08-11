@@ -45,6 +45,7 @@ class Display:
         self.edg_to_neighbors_plot_handels = []
         self.prev_interesting_points = []
         self.prev_corner_points = []
+        self.prev_nodes = []
 
         for pos in init_pos:
             plot_handel_env, = ax_env.plot(pos[0], pos[1], 'ob')
@@ -66,18 +67,26 @@ class Display:
         self.fig.canvas.draw()
 
 
-    def plot_step(self, virtual_target_pos, empty_idxs, wall_idxs, drone_pos, drone_idx):
+    def plot_step(self, virtual_target_pos, empty_idxs, wall_idxs, drone_pos, drone_idx, nodesidxs_ij):
         for tail in empty_idxs:
             self.change_tail_to_empty(tail[0],tail[1])
         for tail in wall_idxs:
             self.change_tail_to_wall(tail[0],tail[1])
         # for tail in wall_corner_idx:
         #     self.change_tail_to_wall(tail[0], tail[1])
-        # self.plot_interesting_points(interesting_points_list_ij)
-        # self.plot_corner_points(corner_points_list_ij)
+        self.plot_nodes(nodesidxs_ij)
         self.update_drone_plot(drone_pos, virtual_target_pos, drone_idx)
-        # self.plot_edges(neighbors_list, drone_pos, drone_idx)
 
+    def plot_nodes(self, nodesidxs_ij):
+        self.erase_nodes(self.prev_nodes)
+        for i, j in nodesidxs_ij:
+            self.change_tail_color_ij( i, j, 'm')
+            self.prev_nodes.append([i, j])
+
+    def erase_nodes(self, nodesidxs_ij):
+        for i, j in nodesidxs_ij:
+            self.change_tail_to_empty(i, j)
+        self.prev_nodes = []
 
     def plot_interesting_points(self, interesting_points_list_ij):
         self.erase_interesting_points(self.prev_interesting_points)

@@ -2,7 +2,8 @@
 import math
 import numpy as np
 from bresenham import bresenham
-
+import matplotlib.pyplot as plt
+from copy import deepcopy as dcpy
 
 class Node:
 
@@ -22,10 +23,10 @@ class Astar:
         self.res = res
         self.tf_prefix = tf_prefix
         self.dict_of_drones_pos = dict_of_drones_pos
-        self.scanning_range = 200
+        self.scanning_range = np.inf
         self.x_grid = np.round((x_lim[1] - x_lim[0]) / 5)
         self.y_grid = np.round((y_lim[1] - y_lim[0]) / 5)
-        self.num_of_temp_nodes = 40
+        self.num_of_temp_nodes = 50
         self.min_dist_between_drones = 10
         self.use_dict_drone = False
 
@@ -42,10 +43,6 @@ class Astar:
         # Derive obstacle map from the Grid
         obmap, minx, miny, maxx, maxy, xw, yw = self.calc_obstacle_map()
 
-        # import matplotlib.pyplot as plt
-        # fig = plt.figure(45645)
-        # plt.imshow(np.transpose(obmap), origin='lower')
-
         # If the path free exit
         g_i, g_j = self.xy_to_ij(gx, gy)
         s_i, s_j = self.xy_to_ij(sx, sy)
@@ -55,6 +52,16 @@ class Astar:
 
         # Choose motion nodes
         mx, my = self.get_motion_nodes(sx, sy, gx, gy)
+
+        image = dcpy(obmap)
+        for i in range(len(mx)):
+            t = self.xy_to_ij(mx[i], my[i])
+            image[t[0],t[1]] = 50
+
+        image[g_i, g_j] = 50
+        image[s_i, s_j] = 50
+        plt.imsave('mapWithoutlocTarget.png', obmap)
+        plt.imsave('map.png', image)
 
         openset, closedset = dict(), dict()
         openset[self.calc_index(nstart, xw, minx, miny)] = nstart
@@ -78,6 +85,7 @@ class Astar:
 
             # Remove the item from the open set
             del openset[c_id]
+
             # Add it to the closed set
             closedset[c_id] = current
 
@@ -104,6 +112,7 @@ class Astar:
                         # This path is the best until now. record it!
                         openset[n_id] = node
 
+
         Astar_path = self.calc_fianl_path(ngoal, closedset)
 
         return Astar_path
@@ -113,6 +122,7 @@ class Astar:
         d = w * math.sqrt((n1.x - n2.x) ** 2 + (n1.y - n2.y) ** 2)
 
         return d
+
 
     def verify_node(self, node, obmap, minx, miny, maxx, maxy):
 
@@ -153,7 +163,7 @@ class Astar:
         mx, my = [], []
         current_drone_pos = [sx, sy]
         current_drone_goal = [gx, gy]
-        rng_start_to_goal = 1.5*np.linalg.norm(np.subtract(current_drone_pos, current_drone_goal))
+        rng_start_to_goal = np.linalg.norm(np.subtract(current_drone_pos, current_drone_goal))
         x_min = np.maximum(current_drone_pos[0] - rng_start_to_goal, self.x_lim[0])
         x_max = np.minimum(current_drone_pos[0] + rng_start_to_goal, self.x_lim[1])
         y_min = np.maximum(current_drone_pos[1] - rng_start_to_goal, self.y_lim[0])
@@ -251,7 +261,6 @@ class Astar:
 
 
 def build_trj(pos, env_limits, res, matrix, goal, tf_prefix, dict_of_drones_pos):
-
     x_lim = env_limits[0:2]
     y_lim = env_limits[2:4]
     astar = Astar(x_lim, y_lim, matrix, res, tf_prefix, dict_of_drones_pos)
@@ -260,6 +269,6 @@ def build_trj(pos, env_limits, res, matrix, goal, tf_prefix, dict_of_drones_pos)
     gy = goal[0][1]
 
     astar_movement = astar.PlanningAlg(pos[0][0], pos[0][1], gx, gy)
-    Astar_Movement = astar_movement[1:]
+    Astar_Movement = astar_movement[1:-1]
 
     return Astar_Movement

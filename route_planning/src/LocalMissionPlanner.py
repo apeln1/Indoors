@@ -17,19 +17,18 @@ class LocalMissionPlanner:
         self.nextyaw = copy.deepcopy(curyaw)
         self.traj = []
 
-    def TaskAssignment(self, dict_of_drones_pos, dronepos, next_pos, grid, droneyaw, traj):
+    def TaskAssignment(self, dict_of_drones_pos, dronepos, grid, droneyaw, traj):
 
         # Parameters for local mission planner
-        if traj == []:
-            nextpos = next_pos
-        else:
-            nextpos = [traj[0]]
-
         self.curpos = dronepos
-        self.nextpos = nextpos
+        try:
+            self.nextpos = [traj[0]]
+        except:
+            self.nextpos = dronepos
         self.curyaw = droneyaw
         self.traj = traj
         self.grid = grid
+
         self.MaintainSearchState(dict_of_drones_pos)
         self.nextyaw = self.curyaw + self.RotationAngleManager()
 
@@ -40,10 +39,9 @@ class LocalMissionPlanner:
 
         Astar_Movement = Astar.build_trj(self.curpos, self.env_limits, self.res, self.grid, self.nextpos,
                                          self.tf_prefix, dict_of_drones_pos)
-        if Astar_Movement == []:
-            Astar_Movement = [self.nextpos[0]]
 
-        self.traj = Astar_Movement + self.traj
+        if Astar_Movement:
+            self.traj = np.concatenate((Astar_Movement, self.traj), axis=0)
 
     def ReturnToHome(self, dict_of_drones_pos):
 
