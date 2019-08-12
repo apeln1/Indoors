@@ -6,6 +6,7 @@
 #include <nav_msgs/Odometry.h>
 #include <mavros_msgs/TimesyncStatus.h>
 #include <sensor_msgs/Imu.h>
+#include <tf2_msgs/TFMessage.h>
 
 static geometry_msgs::PoseStamped msg_vicon_pose;
 static geometry_msgs::PoseStamped msg_vicon_pose_launch;
@@ -44,6 +45,27 @@ void callback_imu_from_structure(const sensor_msgs::Imu imuData)
 //    msg_vicon_pose.pose.orientation.z = imuData.angular_velocity.z;
 }
 
+void odom_tf(const tf2_msgs::TFMessage tfMsg)
+{
+
+  if(tfMsg.transforms[0].header.frame_id.compare("map")==0 && tfMsg.transforms[0].child_frame_id.compare("base_cart_link")==0)
+  {
+    ROS_INFO("[%d] -->  %f", tfMsg.transforms[0].header.seq,(ros::Time::now()-tfMsg.transforms[0].header.stamp).toSec()*1000);
+    msg_vicon_pose.header.stamp       = tfMsg.transforms[0].header.stamp;
+
+    msg_vicon_pose.pose.position.x    = tfMsg.transforms[0].transform.translation.x;
+    msg_vicon_pose.pose.position.y    = tfMsg.transforms[0].transform.translation.y;
+    msg_vicon_pose.pose.position.z    = tfMsg.transforms[0].transform.translation.z;
+
+    msg_vicon_pose.pose.orientation.w = tfMsg.transforms[0].transform.rotation.w;
+    msg_vicon_pose.pose.orientation.x = tfMsg.transforms[0].transform.rotation.x;
+    msg_vicon_pose.pose.orientation.y = tfMsg.transforms[0].transform.rotation.y;
+    msg_vicon_pose.pose.orientation.z = tfMsg.transforms[0].transform.rotation.z;
+
+  }
+}
+
+
 void odom_cb(const nav_msgs::Odometry odometry)
 {
     ROS_INFO("[%d] -->  %f", odometry.header.seq,(ros::Time::now()-odometry.header.stamp).toSec()*1000);
@@ -64,8 +86,13 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "pub_sub");
     ros::NodeHandle n;
 
-    ros::Subscriber odom_sub = n.subscribe<nav_msgs::Odometry>
-            ("odom", 100, odom_cb);
+//    ros::Subscriber odom_sub = n.subscribe<nav_msgs::Odometry>
+//            ("odom", 100, odom_cb);
+
+    ros::Subscriber odom_sub_tf = n.subscribe<tf2_msgs::TFMessage>
+            ("tf", 10, odom_tf);
+
+
     ros::Publisher vicon_pub = n.advertise<geometry_msgs::PoseStamped>("/mavros/vision_pose/pose",100);
 
     ros::Subscriber timeSyncStatusSub = n.subscribe("/mavros/timesync_status",10,callback_timesync_status);
