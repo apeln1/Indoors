@@ -11,9 +11,9 @@ class WPmonitoring:
         self.current_pos = current_pos
         self.next_pos = current_pos
         self.DroneTrj = []
-        self.stepSizeLimit = 50
+        self.stepSizeLimit = self.res*5
         self.dist_factor = 1
-        self.step_noise_size = 20
+        self.step_noise_size = self.res*2
         self.current_heading = []
         self.next_heading = []
 
@@ -116,7 +116,15 @@ class WPmonitoring:
         bres_list = list(bresenham(i0, j0, i1, j1))
         for ind in range(len(bres_list)):
             i, j = bres_list[ind]
-            if matrix[i][j] != 0:
+            if (matrix[i][j] != 0 or
+                    matrix[i - 1][j - 1] != 0 or
+                    matrix[i][j - 1] != 0 or
+                    matrix[i + 1][j - 1] != 0 or
+                    matrix[i + 1][j] != 0 or
+                    matrix[i + 1][j + 1] != 0 or
+                    matrix[i][j + 1] != 0 or
+                    matrix[i - 1][j + 1] != 0 or
+                    matrix[i - 1][j] != 0):
                 return False
         return True
 

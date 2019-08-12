@@ -14,12 +14,15 @@ import math
 from copy import deepcopy as dcpy
 
 
+last_central_Trajectory = []
+wp_trajectory = []
+
 occupancyGrid = OccupancyGrid()
 odometry = Odometry()
-trajectoryIn = PoseArray()
 trajectoryOut = PoseArray()
 batteryStatus = BatteryStatus()
 grid = Grid()
+trueTrajectory = PoseArray()
 
 flag1 = True
 flag2 = True
@@ -31,6 +34,7 @@ trajectory = None
 
 rospy.init_node('local_mission_planner', anonymous=True)
 pub = rospy.Publisher('topic_name', String, queue_size=10)
+
 
 def quaternion_to_euler(vec):
     x,y,z,w = vec
@@ -59,11 +63,7 @@ def occupancyGrid_cb(data):
     grid.x_lim = [0, width]
     grid.y_lim = [0, height]
     flag1 = False
-    ## change to cm
-    grid.res *= 100
-    grid.x_lim = np.multiply(grid.x_lim, 100)
-    grid.y_lim = np.multiply(grid.y_lim, 100)
-    # occupancyGrid = data
+
 
 def odometry_cb(data):
     global drone_pos, drone_yaw, flag2
@@ -72,33 +72,40 @@ def odometry_cb(data):
                               data.pose.pose.orientation.w))
     drone_yaw = quaternion_to_euler(quaternions)[2]
     flag2 = False
-    ## change to cm
-    drone_pos = np.multiply(drone_pos, 100)
+    # ## change to cm
+    # drone_pos = np.multiply(drone_pos, 100)
     try:
         drone_pos = np.add(drone_pos, [grid.x_lim[1]/2, grid.y_lim[1]/2])
     except:
         flag2 = True
     # odometry = data
 
-def trajectory_cb(data):
-    global trajectory, flag3
+def central_trajectory_cb(data):
+    global central_trajectory, flag3
     flag3 = False
-    if data._type == ' /Pose':
-        trajectory = [[data.position.x, data.position.y]]
-        trajectory = np.multiply(trajectory, 100)
-        trajectory = np.add(trajectory, [grid.x_lim[1]/2, grid.y_lim[1]/2])
-    else:
-        trajectory = []
-        for k in data.poses:
-            temp = [k.position.x, k.position.y]
-            temp = np.multiply(temp, 100)
-            try:
-                temp = np.add(temp, [grid.x_lim[1] / 2, grid.y_lim[1] / 2])
-            except:
-                flag3 = True
-            trajectory.append(temp)
+    central_trajectory = []
+    for k in data.poses:
+        temp = [k.position.x, k.position.y]
+        try:
+            temp = np.add(temp, [grid.x_lim[1] / 2, grid.y_lim[1] / 2])
+        except:
+            flag3 = True
+        central_trajectory.append(temp)
 
     # trajectoryIn = data
+
+
+def wp_trajectory_cb(data):
+    global wp_trajectory, flag3
+    wp_trajectory = []
+    for k in data.poses:
+        temp = [k.position.x, k.position.y]
+        try:
+            temp = np.add(temp, [grid.x_lim[1] / 2, grid.y_lim[1] / 2])
+        except:
+            continue
+        wp_trajectory.append(temp)
+
 
 def battery_status_cb(data):
     global batteryStatus
@@ -109,10 +116,11 @@ rospy.Subscriber("/occ_map_yuval", OccupancyGrid, occupancyGrid_cb)
 #   rospy.Subscriber("/route_planner/in/odometry", Odometry, odometry_cb)
 rospy.Subscriber("/mavros/local_position/odom", Odometry, odometry_cb)
 # rospy.Subscriber("/route_planner/in/nextPose", Pose, trajectory_cb)
-rospy.Subscriber("/route_planner/in/trajectory", PoseArray, trajectory_cb)
+rospy.Subscriber("/route_planner/in/central_trajectory", PoseArray, central_trajectory_cb)
+rospy.Subscriber("route_planner/out/wp_trajectory", PoseArray, wp_trajectory_cb)
 #   rospy.Subscriber("/mavros/battery", BatteryStatus, battery_status_cb)
 
-pubTrajectory = rospy.Publisher('/route_planner/out/trajectory', PoseArray, queue_size=10)
+pubTrajectory = rospy.Publisher('/route_planner/out/local_trajectory', PoseArray, queue_size=10)
 pubNextPose = rospy.Publisher('/mavros/setpoint_position/local', PoseStamped, queue_size=10)
 r = rospy.Rate(10)   # 10hz
 
@@ -122,14 +130,24 @@ while flag1 or flag2 or flag3:
     pub.publish("while")
 
 i = 0
-env_limits = [grid.x_lim[0],grid.x_lim[1],grid.y_lim[0],grid.y_lim[1]]
+env_limits = [grid.x_lim[0], grid.x_lim[1], grid.y_lim[0],grid.y_lim[1]]
 
 counter = 0
 
 local_mission_planner = LocalMissionPlanner(env_limits, i, grid.res, drone_pos, grid.matrix, drone_yaw)
 while not rospy.is_shutdown():
-    local_mission_planner.TaskAssignment(dict(), drone_pos,
-                  grid.matrix, drone_yaw, trajectory)
+    if not np.array_equal(central_trajectory, last_central_Trajectory):
+        trueTrajectory = dcpy(central_trajectory)
+        last_central_Trajectory = dcpy(central_trajectory)
+    else:
+        if not wp_trajectory:
+            pubTrajectory.publish(trajectoryOut)
+            continue
+        trueTrajectory = dcpy(wp_trajectory)
+
+    trajectoryOut = PoseArray()
+    local_mission_planner.TaskAssignment(drone_pos,
+                  grid.matrix, drone_yaw, trueTrajectory)
 
     for t in local_mission_planner.traj:
         pose = Pose()
@@ -152,10 +170,11 @@ while not rospy.is_shutdown():
 
     counter+=1
 
+    print(trajectoryOut.poses)
     pub.publish("hello world")
     trajectoryOut.header.frame_id = 'local_origin_ned'
     pubTrajectory.publish(trajectoryOut)
     nextPose = PoseStamped()
-    trajectoryOut = PoseArray()
+
 
     r.sleep()

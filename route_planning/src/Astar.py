@@ -16,18 +16,14 @@ class Node:
 
 class Astar:
 
-    def __init__(self, x_lim, y_lim, matrix, res, tf_prefix, dict_of_drones_pos):
+    def __init__(self, x_lim, y_lim, matrix, res, tf_prefix):
         self.x_lim = x_lim
         self.y_lim = y_lim
         self.matrix = matrix
         self.res = res
         self.tf_prefix = tf_prefix
-        self.dict_of_drones_pos = dict_of_drones_pos
         self.scanning_range = np.inf
-        self.x_grid = np.round((x_lim[1] - x_lim[0]) / 5)
-        self.y_grid = np.round((y_lim[1] - y_lim[0]) / 5)
-        self.num_of_temp_nodes = 50
-        self.min_dist_between_drones = 10
+        self.num_of_temp_nodes = 100
         self.use_dict_drone = False
 
     def PlanningAlg(self, sx, sy, gx, gy):
@@ -55,11 +51,15 @@ class Astar:
 
         image = dcpy(obmap)
         for i in range(len(mx)):
-            t = self.xy_to_ij(mx[i], my[i])
-            image[t[0],t[1]] = 50
 
-        image[g_i, g_j] = 50
-        image[s_i, s_j] = 50
+            t = self.xy_to_ij(mx[i], my[i])
+            image[t[0]][t[1]] = 50
+
+        for i in range(-3,3):
+            for j in range(-3, 3):
+                image[g_i + i, g_j + j] = 50
+                image[s_i + i, s_j + j] = 50
+
         plt.imsave('mapWithoutlocTarget.png', obmap)
         plt.imsave('map.png', image)
 
@@ -71,14 +71,14 @@ class Astar:
             try:
                 c_id = min(openset, key=lambda o: openset[o].cost + self.calc_heuristic(ngoal, openset[o]))
             except:
+                print('array empty')
                 Astar_path = []
                 return Astar_path
 
             current = openset[c_id]
 
-            c_i, c_j = self.xy_to_ij(current.x, current.y)
-            if c_i == g_i and c_j == g_j:
-                # print("Find goal")
+            if abs(current.x - gx) <= self.res and abs(current.y - gy) <= self.res:
+                print("Find goal")
                 ngoal.pind = current.pind
                 ngoal.cost = current.cost
                 break
@@ -161,50 +161,37 @@ class Astar:
     def get_motion_nodes(self, sx, sy, gx, gy):
 
         mx, my = [], []
+        resfactor = 3
         current_drone_pos = [sx, sy]
         current_drone_goal = [gx, gy]
-        rng_start_to_goal = np.linalg.norm(np.subtract(current_drone_pos, current_drone_goal))
-        x_min = np.maximum(current_drone_pos[0] - rng_start_to_goal, self.x_lim[0])
-        x_max = np.minimum(current_drone_pos[0] + rng_start_to_goal, self.x_lim[1])
-        y_min = np.maximum(current_drone_pos[1] - rng_start_to_goal, self.y_lim[0])
-        y_max = np.minimum(current_drone_pos[1] + rng_start_to_goal, self.y_lim[1])
+        rng_start_to_goal = 1.5*np.linalg.norm(np.subtract(current_drone_pos, current_drone_goal))
+        x_min = np.maximum(current_drone_pos[0] - rng_start_to_goal, self.x_lim[0]+(resfactor*self.res))
+        x_max = np.minimum(current_drone_pos[0] + rng_start_to_goal, self.x_lim[1]-(resfactor*self.res))
+        y_min = np.maximum(current_drone_pos[1] - rng_start_to_goal, self.y_lim[0]+(resfactor*self.res))
+        y_max = np.minimum(current_drone_pos[1] + rng_start_to_goal, self.y_lim[1]-(resfactor*self.res))
 
         x_rand_vec = np.random.choice(range(int(np.round(x_min)), int(np.round(x_max))), int(self.num_of_temp_nodes))
         y_rand_vec = np.random.choice(range(int(np.round(y_min)), int(np.round(y_max))), int(self.num_of_temp_nodes))
 
-        if self.use_dict_drone:
-            drones_pos = [self.dict_of_drones_pos[i].pos[0] for i in self.dict_of_drones_pos if
-                          not np.array_equal(self.dict_of_drones_pos[i].pos[0], current_drone_pos)]
-            drones_next_pos = [self.dict_of_drones_pos[i].next_pos[0] for i in self.dict_of_drones_pos if
-                               not np.array_equal(self.dict_of_drones_pos[i].pos[0], current_drone_pos)]
-
-            for k in range(len(x_rand_vec)):
-                node_valid = True
-                temp_m_node_xy = [x_rand_vec[k], y_rand_vec[k]]
-                temp_i, temp_j = self.xy_to_ij(x_rand_vec[k], y_rand_vec[k])
-                if self.matrix[temp_i][temp_j] == 0:
-                    for dp_idx in range(len(drones_pos)):
-                        if (np.linalg.norm(np.subtract(drones_pos[dp_idx], temp_m_node_xy))
-                                < self.min_dist_between_drones
-                            and np.linalg.norm(np.subtract(drones_next_pos[dp_idx], temp_m_node_xy))
-                                < self.min_dist_between_drones):
-                            node_valid = False
-                            break
-                    if node_valid:
-                        mx.append(temp_m_node_xy[0])
-                        my.append(temp_m_node_xy[1])
-                    if len(mx) >= (self.num_of_temp_nodes/2):
-                        break
-        else:
-            for k in range(len(x_rand_vec)):
-                temp_m_node_xy = [x_rand_vec[k], y_rand_vec[k]]
-                temp_i, temp_j = self.xy_to_ij(x_rand_vec[k], y_rand_vec[k])
-                if self.matrix[temp_i][temp_j] == 0:
-                    mx.append(temp_m_node_xy[0])
-                    my.append(temp_m_node_xy[1])
-                if len(mx) >= (self.num_of_temp_nodes / 2):
-                    break
-
+        for k in range(len(x_rand_vec)):
+            temp_m_node_xy = [x_rand_vec[k], y_rand_vec[k]]
+            temp_i, temp_j = self.xy_to_ij(x_rand_vec[k], y_rand_vec[k])
+            # if self.matrix[temp_i][temp_j] == 0:
+            if (self.matrix[temp_i][temp_j] == 0 and
+                    self.matrix[temp_i - 1][temp_j - 1] == 0 and
+                    self.matrix[temp_i][temp_j - 1] == 0 and
+                    self.matrix[temp_i + 1][temp_j - 1] == 0 and
+                    self.matrix[temp_i + 1][temp_j] == 0 and
+                    self.matrix[temp_i + 1][temp_j + 1] == 0 and
+                    self.matrix[temp_i][temp_j + 1] == 0 and
+                    self.matrix[temp_i - 1][temp_j + 1] == 0 and
+                    self.matrix[temp_i - 1][temp_j] == 0):
+                mx.append(temp_m_node_xy[0])
+                my.append(temp_m_node_xy[1])
+            if len(mx) >= (self.num_of_temp_nodes / 2):
+                break
+        mx.append(gx)
+        my.append(gy)
         return mx, my
 
     def get_motion_model(self, mx, my, nstart, ngoal, obmap):
@@ -234,7 +221,16 @@ class Astar:
         bpath = list(bresenham(si, sj, gi, gj))
         ok_way = True
         for ii, elem in enumerate(bpath[1:]):
-            if obmap[elem[0]][elem[1]] != 0:
+            # if obmap[elem[0]][elem[1]] != 0:
+            if (obmap[elem[0]][elem[1]] != 0 or
+                    obmap[elem[0] - 1][elem[1] - 1] != 0 or
+                    obmap[elem[0]][elem[1] - 1] != 0 or
+                    obmap[elem[0] + 1][elem[1] - 1] != 0 or
+                    obmap[elem[0] + 1][elem[1]] != 0 or
+                    obmap[elem[0] + 1][elem[1] + 1] != 0 or
+                    obmap[elem[0]][elem[1] + 1] != 0 or
+                    obmap[elem[0] - 1][elem[1] + 1] != 0 or
+                    obmap[elem[0] - 1][elem[1]] != 0):
                 ok_way = False
                 break
 
@@ -260,15 +256,22 @@ class Astar:
         return i, j
 
 
-def build_trj(pos, env_limits, res, matrix, goal, tf_prefix, dict_of_drones_pos):
+def build_trj(pos, env_limits, res, matrix, goal, tf_prefix):
     x_lim = env_limits[0:2]
     y_lim = env_limits[2:4]
-    astar = Astar(x_lim, y_lim, matrix, res, tf_prefix, dict_of_drones_pos)
+    astar = Astar(x_lim, y_lim, matrix, res, tf_prefix)
 
     gx = goal[0][0]
     gy = goal[0][1]
-
+    print('res')
+    print(res)
+    print('start')
+    print([pos[0][0], pos[0][1]])
+    print('goal')
+    print([gx, gy])
     astar_movement = astar.PlanningAlg(pos[0][0], pos[0][1], gx, gy)
+    print('astar_movement')
+    print(astar_movement)
     Astar_Movement = astar_movement[1:-1]
 
     return Astar_Movement

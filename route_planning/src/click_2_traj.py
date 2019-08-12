@@ -5,7 +5,7 @@ import rospy
 from geometry_msgs.msg import PoseStamped, PoseArray, Pose
 from copy import deepcopy as dcpy
 
-traj_pub = rospy.Publisher("/route_planner/in/trajectory", PoseArray, queue_size=10)
+traj_pub = rospy.Publisher("/route_planner/in/central_trajectory", PoseArray, queue_size=10)
 pose_pub = rospy.Publisher("/route_planner/in/nextPose", Pose, queue_size=10)
 arr_msg = PoseArray()
 pose_msg = Pose()
