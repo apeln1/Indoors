@@ -53,7 +53,6 @@ def occupancyGrid_cb(data):
 
 def trajectory_cb(data):
     global trajectory, next_yaw, flag3
-    print(len(data.poses))
     flag3 = False
     trajectory = []
     for k in data.poses:
@@ -103,7 +102,6 @@ while not rospy.is_shutdown():
     wpMonitoring.FollowWP(drone_pos, drone_yaw, grid.matrix, trajectory, next_yaw)
     for t in wpMonitoring.DroneTrj:
         pose = Pose()
-        print([t[0],t[1]])
         pose.position.x = t[0] - grid.x_lim[1]/2
         pose.position.y = t[1] - grid.y_lim[1]/2
         pose.position.z = 4

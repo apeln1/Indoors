@@ -37,7 +37,10 @@ class LocalMissionPlanner:
         self.nextyaw = self.RotationAngleManager()
 
     def RotationAngleManager(self):
-        angle = math.atan((self.nextpos[0][1] - self.curpos[0][1]) / (self.nextpos[0][0] - self.curpos[0][0]))
+        vec = np.subtract(self.nextpos[0], self.curpos[0])
+        vec_dir = np.divide(vec, np.linalg.norm(vec))
+        angle = math.atan(vec_dir[1]/vec_dir[0])
+        # angle = math.atan2(vec_dir[1], vec_dir[0])
         if math.isnan(angle):
             angle = 0
         return angle
@@ -48,10 +51,10 @@ class LocalMissionPlanner:
 
         if Astar_Movement:
             self.traj = np.concatenate((Astar_Movement, self.traj), axis=0)
-            print('Final traj')
-            print(self.traj)
-            print('Final traj in [m]')
-            print(self.traj)
+            # print('Final traj')
+            # print(self.traj)
+            # print('Final traj in [m]')
+            # print(self.traj)
         self.traj = np.divide(self.traj, m_to_cm)
 
     def ReturnToHome(self):

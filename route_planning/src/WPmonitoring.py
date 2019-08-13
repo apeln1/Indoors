@@ -11,7 +11,7 @@ class WPmonitoring:
         self.current_pos = current_pos
         self.next_pos = current_pos
         self.DroneTrj = []
-        self.stepSizeLimit = self.res*5
+        self.stepSizeLimit = self.res*10
         self.dist_factor = 1
         self.step_noise_size = self.res*2
         self.current_heading = []
@@ -82,12 +82,12 @@ class WPmonitoring:
         if not self.is_step_legal(self.current_pos, vec, matrix):
             vec = np.zeros(2)
 
-        # Add noise (only for simulation)
-        while break_counter < max_count_val:
-            break_counter = break_counter + 1
-            vec = self.step_noise_size * ([0.5, 0.5] - np.random.rand(2)) + vec
-            if self.is_step_legal(self.current_pos, vec, matrix):
-                break
+        # # Add noise (only for simulation)
+        # while break_counter < max_count_val:
+        #     break_counter = break_counter + 1
+        #     vec = self.step_noise_size * ([0.5, 0.5] - np.random.rand(2)) + vec
+        #     if self.is_step_legal(self.current_pos, vec, matrix):
+        #         break
 
         # Update the step and erase the wp from the path
         # if break_counter < max_count_val:

@@ -29,7 +29,7 @@ callback_traj.counter = 0
 def talker():
     global arr_msg
     rospy.init_node('Traj_yuval', anonymous=True)
-    rate = rospy.Rate(10) # 10hz
+    rate = rospy.Rate(0.2) # 0.2hz
     rospy.Subscriber("/move_base_simple/goal", PoseStamped, callback_traj)
     while not rospy.is_shutdown():
         traj_pub.publish(arr_msg)
