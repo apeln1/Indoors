@@ -23,7 +23,7 @@ class Astar:
         self.res = res
         self.tf_prefix = tf_prefix
         self.scanning_range = np.inf
-        self.num_of_temp_nodes = 50
+        self.num_of_temp_nodes = 100
         self.use_dict_drone = False
 
     def PlanningAlg(self, sx, sy, gx, gy):
