@@ -88,7 +88,7 @@ pubWaypoint = rospy.Publisher('/mavros/setpoint_position/local', PoseStamped , q
 pubTraj = rospy.Publisher('/route_planner/out/wp_trajectory', PoseArray,  queue_size=10)
 pub = rospy.Publisher('topic_name', String, queue_size=10)
 rospy.init_node('wp_monitoring')
-r = rospy.Rate(10) # 50hz
+r = rospy.Rate(30) # 50hz
 
 while flag1 or flag2 or flag3:
     r.sleep()

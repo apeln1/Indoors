@@ -4,6 +4,7 @@ import numpy as np
 from bresenham import bresenham
 import matplotlib.pyplot as plt
 from copy import deepcopy as dcpy
+from k_means_los import k_means_los
 
 class Node:
 
@@ -23,7 +24,7 @@ class Astar:
         self.res = res
         self.tf_prefix = tf_prefix
         self.scanning_range = np.inf
-        self.num_of_temp_nodes = 100
+        self.num_of_temp_nodes = 60
         self.use_dict_drone = False
 
     def PlanningAlg(self, sx, sy, gx, gy):
@@ -161,37 +162,46 @@ class Astar:
     def get_motion_nodes(self, sx, sy, gx, gy):
 
         mx, my = [], []
-        resfactor = 3
-        current_drone_pos = [sx, sy]
-        current_drone_goal = [gx, gy]
-        rng_start_to_goal = 1.5*np.linalg.norm(np.subtract(current_drone_pos, current_drone_goal))
-        x_min = np.maximum(current_drone_pos[0] - rng_start_to_goal, self.x_lim[0]+(resfactor*self.res))
-        x_max = np.minimum(current_drone_pos[0] + rng_start_to_goal, self.x_lim[1]-(resfactor*self.res))
-        y_min = np.maximum(current_drone_pos[1] - rng_start_to_goal, self.y_lim[0]+(resfactor*self.res))
-        y_max = np.minimum(current_drone_pos[1] + rng_start_to_goal, self.y_lim[1]-(resfactor*self.res))
 
-        x_rand_vec = np.random.choice(range(int(np.round(x_min)), int(np.round(x_max))), int(self.num_of_temp_nodes))
-        y_rand_vec = np.random.choice(range(int(np.round(y_min)), int(np.round(y_max))), int(self.num_of_temp_nodes))
+        # resfactor = 2
+        # current_drone_pos = [sx, sy]
+        # current_drone_goal = [gx, gy]
+        # rng_start_to_goal = 2*np.linalg.norm(np.subtract(current_drone_pos, current_drone_goal))
+        # x_min = np.maximum(current_drone_pos[0] - rng_start_to_goal, self.x_lim[0]+(resfactor*self.res))
+        # x_max = np.minimum(current_drone_pos[0] + rng_start_to_goal, self.x_lim[1]-(resfactor*self.res))
+        # y_min = np.maximum(current_drone_pos[1] - rng_start_to_goal, self.y_lim[0]+(resfactor*self.res))
+        # y_max = np.minimum(current_drone_pos[1] + rng_start_to_goal, self.y_lim[1]-(resfactor*self.res))
+        #
+        # x_rand_vec = np.random.choice(range(int(np.round(x_min)), int(np.round(x_max))), int(self.num_of_temp_nodes))
+        # y_rand_vec = np.random.choice(range(int(np.round(y_min)), int(np.round(y_max))), int(self.num_of_temp_nodes))
+        #
+        # for k in range(len(x_rand_vec)):
+        #     temp_m_node_xy = [x_rand_vec[k], y_rand_vec[k]]
+        #     temp_i, temp_j = self.xy_to_ij(x_rand_vec[k], y_rand_vec[k])
+        #     # if self.matrix[temp_i][temp_j] == 0:
+        #     if (self.matrix[temp_i][temp_j] == 0 and
+        #             self.matrix[temp_i - 1][temp_j - 1] == 0 and
+        #             self.matrix[temp_i][temp_j - 1] == 0 and
+        #             self.matrix[temp_i + 1][temp_j - 1] == 0 and
+        #             self.matrix[temp_i + 1][temp_j] == 0 and
+        #             self.matrix[temp_i + 1][temp_j + 1] == 0 and
+        #             self.matrix[temp_i][temp_j + 1] == 0 and
+        #             self.matrix[temp_i - 1][temp_j + 1] == 0 and
+        #             self.matrix[temp_i - 1][temp_j] == 0):
+        #         mx.append(temp_m_node_xy[0])
+        #         my.append(temp_m_node_xy[1])
+        #     if len(mx) >= (self.num_of_temp_nodes / 2):
+        #         break
+        # mx.append(gx)
+        # my.append(gy)
 
-        for k in range(len(x_rand_vec)):
-            temp_m_node_xy = [x_rand_vec[k], y_rand_vec[k]]
-            temp_i, temp_j = self.xy_to_ij(x_rand_vec[k], y_rand_vec[k])
-            # if self.matrix[temp_i][temp_j] == 0:
-            if (self.matrix[temp_i][temp_j] == 0 and
-                    self.matrix[temp_i - 1][temp_j - 1] == 0 and
-                    self.matrix[temp_i][temp_j - 1] == 0 and
-                    self.matrix[temp_i + 1][temp_j - 1] == 0 and
-                    self.matrix[temp_i + 1][temp_j] == 0 and
-                    self.matrix[temp_i + 1][temp_j + 1] == 0 and
-                    self.matrix[temp_i][temp_j + 1] == 0 and
-                    self.matrix[temp_i - 1][temp_j + 1] == 0 and
-                    self.matrix[temp_i - 1][temp_j] == 0):
-                mx.append(temp_m_node_xy[0])
-                my.append(temp_m_node_xy[1])
-            if len(mx) >= (self.num_of_temp_nodes / 2):
-                break
-        mx.append(gx)
-        my.append(gy)
+        nodes = k_means_los(self.num_of_temp_nodes, self.matrix, self.res, [sx, sy], [gx, gy],
+                            self.x_lim, self.y_lim, False)
+        for idx, elem in enumerate(nodes):
+            tempx, tempy = self.ij_to_xy(elem[0], elem[1])
+            mx.append(tempx)
+            my.append(tempy)
+
         return mx, my
 
     def get_motion_model(self, mx, my, nstart, ngoal, obmap):
@@ -254,6 +264,11 @@ class Astar:
         i = int(np.floor((x - self.x_lim[0]) / self.res))
         j = int(np.floor((y - self.y_lim[0]) / self.res))
         return i, j
+
+    def ij_to_xy(self, i, j):
+        x = self.x_lim[0] + i*self.res + self.res/2
+        y = self.y_lim[0] + j*self.res + self.res/2
+        return x, y
 
 
 def build_trj(pos, env_limits, res, matrix, goal, tf_prefix):

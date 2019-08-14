@@ -43,7 +43,7 @@ class LocalMissionPlanner:
         # angle = math.atan2(vec_dir[1], vec_dir[0])
         if math.isnan(angle):
             angle = 0
-        return self.curyaw + angle
+        return angle
 
     def MaintainSearchState(self):
 

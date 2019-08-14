@@ -45,7 +45,7 @@ class WPmonitoring:
 
         # Check if the previous step is over and delete it if true
         if len(self.DroneTrj) > 0:
-            if(np.linalg.norm(np.subtract(self.DroneTrj[0], self.current_pos[0])) <
+            if(np.linalg.norm(np.subtract(self.DroneTrj[0], self.current_pos[0])) <=
                     self.dist_factor * self.step_noise_size):
                 self.DroneTrj = np.delete(self.DroneTrj, 0, 0)
 
